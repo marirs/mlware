@@ -1,13 +1,15 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("regex error")]
+    #[error("Regex error: {0}")]
     UtfError(#[from] regex::Error),
-    #[error("pelite error")]
+    #[error("PE error: {0}")]
     PeLiteError(#[from] pelite::Error),
-    #[error("litegbm error")]
+    #[error("LightGBM error: {0}")]
     LightGBMError(#[from] lightgbm::Error),
-    #[error("io error")]
+    #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    #[error("utf8 error")]
-    Utf8Error(#[from] std::str::Utf8Error)
+    #[error("UTF8 error: {0}")]
+    Utf8Error(#[from] std::str::Utf8Error),
+    #[error("{0}")]
+    Generic(String),
 }

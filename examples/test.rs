@@ -1,12 +1,3 @@
-use std::io::Read;
-
-
-fn load_file(file_name: &str) -> Vec<u8>{
-    let mut file = std::fs::File::open(file_name).unwrap();
-    let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
-    data
-}
 
 
 fn main(){
@@ -17,7 +8,6 @@ fn main(){
     }
     let model_file = &args[1];
     let file_to_test = &args[2];
-    let bst = lightgbm::Booster::from_file(model_file).unwrap();
-    let score = deepmal::predict_sample(&bst, &load_file(&file_to_test)).unwrap();
-    println!("{:?}", score[0]);
+    let score = deepmal::predict(model_file, file_to_test).unwrap();
+    println!("{:?}", score[0]*100.0);
 }

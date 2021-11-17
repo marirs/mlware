@@ -1,8 +1,7 @@
 mod error;
 mod features;
 mod utils;
-
-use std::io::Read;
+use std::{io::Read, path::Path};
 
 pub type Result<T> = std::result::Result<T, error::Error>;
 
@@ -41,8 +40,9 @@ fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)>
     Ok((x_train, y_train))
 }
 
-
 pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgbm::Booster> {
+    //! Train a model from the given dataset
+    //!
     let mut p = params.clone();
     p["application"] = serde_json::Value::String("binary".to_string());
     let (x_train, y_train) = read_vectorized_features(data_dir)?;
@@ -54,8 +54,17 @@ pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgb
 }
 
 
-pub fn predict_sample(lgbm_model: &lightgbm::Booster, file_data: &[u8]) -> Result<Vec<f64>>{
+pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>>{
+    //! Predict a given PE executable to see if its a malware, suspicious or benign file.
+    //! ## Example
+    //! ```rust
+    //! use deepmal::predict;
+    //!
+    //! let score = predict("rs-model/model.txt", "data/Demo64.dll").unwrap();
+    //! println!("{:?}", score[0]);
+    //! ```
+    let lgbm_model = lightgbm::Booster::from_file(model_file.as_ref().to_str().unwrap())?;
     let extractor = features::PeFeaturesExtractor::new()?;
-    let features = extractor.feature_vector(file_data)?;
+    let features = extractor.feature_vector(&utils::load_file(file_data))?;
     Ok(lgbm_model.predict(vec![features])?[0].clone())
 }

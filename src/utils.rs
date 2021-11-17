@@ -1,5 +1,14 @@
 use crate::Result;
 use maplit::hashmap;
+use std::{io::Read, path::Path};
+
+/// Loads a file and returns the buffer
+pub fn load_file<P: AsRef<Path>>(file_name: P) -> Vec<u8> {
+    let mut file = std::fs::File::open(file_name).unwrap();
+    let mut data = Vec::new();
+    file.read_to_end(&mut data).unwrap();
+    data
+}
 
 pub fn align(value: &u64, align_on: &u64) -> u64{
   if align_on>&0u64 && value%align_on>0 {
@@ -58,7 +67,8 @@ pub fn hasher_bytes_f64_pairs(width: u32, data: &Vec<(&[u8], f64)>) -> Result<Ve
     hashing_transform(width, &vec![data.iter().map(|(s, i)| (*s, *i)).collect()])
 }
 
-pub fn entropy(data: &[u8]) -> f64{
+/// Calculates the entropy for the given buffer
+pub fn entropy(data: &[u8]) -> f64 {
     let mut frequencies = vec![0; 256];
     for x in data{
         frequencies[*x as usize]+=1;
