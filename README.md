@@ -1,6 +1,6 @@
 # DeepMal 
 
-Predict Malware's using machine learning trained model.
+Static malware analysis using machine learning.
 
 ### Requirements
 - Rust 1.50+
