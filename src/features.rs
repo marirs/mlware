@@ -510,7 +510,7 @@ impl GeneralFileInfoFeature {
                                 vec![0.0 as f64]
                             }
                         },
-                        Err(e) => return Err(crate::error::Error::PeLiteError(e))
+                        Err(e) => return Err(crate::error::Error::PeLite(e))
                     }
                 },
                 "imports".to_string() => vec![self.get_pe32_imports_count(pe)? as f64],
@@ -534,7 +534,7 @@ impl GeneralFileInfoFeature {
                                 vec![0.0 as f64]
                             }
                         },
-                        Err(e) => return Err(crate::error::Error::PeLiteError(e))
+                        Err(e) => return Err(crate::error::Error::PeLite(e))
                     }
                 },
                 "imports".to_string() => vec![self.get_pe64_imports_count(pe)? as f64],
@@ -911,7 +911,7 @@ impl ExportsInfoFeature {
                 let exports = match pe.exports() {
                     Ok(s) => s,
                     Err(pelite::Error::Null) => return Ok(res),
-                    Err(e) => return Err(crate::error::Error::PeLiteError(e)),
+                    Err(e) => return Err(crate::error::Error::PeLite(e)),
                 };
                 if let Ok(by) = exports.by() {
                     for result in by.iter_names() {
@@ -927,7 +927,7 @@ impl ExportsInfoFeature {
                 let exports = match pe.exports() {
                     Ok(s) => s,
                     Err(pelite::Error::Null) => return Ok(res),
-                    Err(e) => return Err(crate::error::Error::PeLiteError(e)),
+                    Err(e) => return Err(crate::error::Error::PeLite(e)),
                 };
                 if let Ok(by) = exports.by() {
                     for result in by.iter_names() {
