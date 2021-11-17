@@ -1,0 +1,5 @@
+run the following commands in your virtual environment with cd <Root Directory> 
+
+pip install git+https://github.com/elastic/ember.git
+pip install -r requirements.txt
+python setup.py install

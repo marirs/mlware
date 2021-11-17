@@ -1,0 +1,16 @@
+[package]
+name = "deepmal"
+version = "0.2.1"
+authors = ["Marirs <marirs@gmail.com>"]
+description = "Deep learning clustring to predict Malwares"
+keywords = []
+edition = "2018"
+
+[dependencies]
+lightgbm = "0.2.3"
+thiserror = "1.0.29"
+regex = "1.5.4"
+maplit = "1.0.2"
+pelite = "0.9.0"
+murmur3 = "0.5.1"
+serde_json = "*"
