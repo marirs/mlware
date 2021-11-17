@@ -5,10 +5,10 @@ use std::{io::Read, path::Path};
 
 pub type Result<T> = std::result::Result<T, error::Error>;
 
-fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)>{
+fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)> {
     let mut x_train = vec![];
     let mut y_train = vec![];
-    let yfile = std::fs::File::open(format!("{}/{}",data_dir, "y_train.dat"))?;
+    let yfile = std::fs::File::open(format!("{}/{}", data_dir, "y_train.dat"))?;
     let mut yreader = std::io::BufReader::new(yfile);
     let mut buffer = [0u8; 4];
     loop {
@@ -20,7 +20,7 @@ fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)>
         }
         y_train.push(f32::from_le_bytes(buffer));
     }
-    let xfile = std::fs::File::open(format!("{}/{}",data_dir, "x_train.dat"))?;
+    let xfile = std::fs::File::open(format!("{}/{}", data_dir, "x_train.dat"))?;
     let mut xreader = std::io::BufReader::new(xfile);
     let mut buffer = [0u8; 4];
     let mut x_str = vec![];
@@ -32,7 +32,7 @@ fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)>
             return Err(e.into());
         }
         x_str.push(f32::from_le_bytes(buffer) as f64);
-        if x_str.len() == y_train.len(){
+        if x_str.len() == y_train.len() {
             x_train.push(x_str);
             x_str = vec![];
         }
@@ -46,15 +46,14 @@ pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgb
     let mut p = params.clone();
     p["application"] = serde_json::Value::String("binary".to_string());
     let (x_train, y_train) = read_vectorized_features(data_dir)?;
-//    train_rows = (y_train != -1)
+    //    train_rows = (y_train != -1)
 
     let lgbm_dataset = lightgbm::Dataset::from_mat(x_train, y_train)?;
     let lgbm_model = lightgbm::Booster::train(lgbm_dataset, &p)?;
     Ok(lgbm_model)
 }
 
-
-pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>>{
+pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>> {
     //! Predict a given PE executable to see if its a malware, suspicious or benign file.
     //! ## Example
     //! ```rust

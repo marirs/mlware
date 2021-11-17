@@ -10,40 +10,40 @@ pub fn load_file<P: AsRef<Path>>(file_name: P) -> Vec<u8> {
     data
 }
 
-pub fn align(value: &u64, align_on: &u64) -> u64{
-  if align_on>&0u64 && value%align_on>0 {
-      value + (align_on - (value % align_on))
-  } else {
-      value.clone()
-  }
+pub fn align(value: &u64, align_on: &u64) -> u64 {
+    if align_on > &0u64 && value % align_on > 0 {
+        value + (align_on - (value % align_on))
+    } else {
+        value.clone()
+    }
 }
 
-pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Result<Vec<f64>>{
+pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Result<Vec<f64>> {
     let mut indices = vec![];
     let mut indptr = vec![0];
     let mut values = vec![];
     let mut size = 0;
 
-    for x in data{
-        for (f, v) in x{
-            if v==&0.0{
+    for x in data {
+        for (f, v) in x {
+            if v == &0.0 {
                 continue;
             }
             let h = murmur3::murmur3_32(&mut std::io::Cursor::new(f), 0)? as i32;
-            if h == -2147483648{
+            if h == -2147483648 {
                 indices.push((2147483647 - (n_features - 1)) as u32 % n_features);
-            }else{
+            } else {
                 indices.push((h as i32).abs() as u32 % n_features);
             }
-            let value = v*(((if h >= 0 {1} else {0}) * 2 - 1) as f64);
+            let value = v * (((if h >= 0 { 1 } else { 0 }) * 2 - 1) as f64);
             values.push(value);
-            size +=1;
+            size += 1;
         }
         indptr.push(size);
     }
     let mut res = vec![0.0; n_features as usize];
-    for i in indptr.windows(2){
-        for ii in i[0]..i[1]{
+    for i in indptr.windows(2) {
+        for ii in i[0]..i[1] {
             res[indices[ii] as usize] += values[ii];
         }
         break;
@@ -51,40 +51,43 @@ pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Resu
     Ok(res)
 }
 
-pub fn hasher_bytes(width: u32, data: &[u8]) -> Result<Vec<f64>>{
+pub fn hasher_bytes(width: u32, data: &[u8]) -> Result<Vec<f64>> {
     hashing_transform(width, &vec![vec![(data, 1.0)]])
 }
 
-pub fn hasher_bytes_vec(width: u32, data: &Vec<&[u8]>) -> Result<Vec<f64>>{
-    hashing_transform(width, &vec![data.iter().map(|s| (*s,1.0)).collect()])
+pub fn hasher_bytes_vec(width: u32, data: &Vec<&[u8]>) -> Result<Vec<f64>> {
+    hashing_transform(width, &vec![data.iter().map(|s| (*s, 1.0)).collect()])
 }
 
-pub fn hasher_bytes_u32_pairs(width: u32, data: &Vec<(&[u8], u32)>) -> Result<Vec<f64>>{
-    hashing_transform(width, &vec![data.iter().map(|(s, i)| (*s, *i as f64)).collect()])
+pub fn hasher_bytes_u32_pairs(width: u32, data: &Vec<(&[u8], u32)>) -> Result<Vec<f64>> {
+    hashing_transform(
+        width,
+        &vec![data.iter().map(|(s, i)| (*s, *i as f64)).collect()],
+    )
 }
 
-pub fn hasher_bytes_f64_pairs(width: u32, data: &Vec<(&[u8], f64)>) -> Result<Vec<f64>>{
+pub fn hasher_bytes_f64_pairs(width: u32, data: &Vec<(&[u8], f64)>) -> Result<Vec<f64>> {
     hashing_transform(width, &vec![data.iter().map(|(s, i)| (*s, *i)).collect()])
 }
 
 /// Calculates the entropy for the given buffer
 pub fn entropy(data: &[u8]) -> f64 {
     let mut frequencies = vec![0; 256];
-    for x in data{
-        frequencies[*x as usize]+=1;
+    for x in data {
+        frequencies[*x as usize] += 1;
     }
     let mut entropy = 0.0;
     for p in frequencies {
         if p > 0 {
             let freq = p as f64 / data.len() as f64;
             entropy += freq * f64::log2(freq);
+        }
     }
-  }
-  -entropy
+    -entropy
 }
 
-pub fn machine_to_string(p: u16) -> String{
-    match p{
+pub fn machine_to_string(p: u16) -> String {
+    match p {
         0x0000 => "UNKNOWN".to_string(),
         0x01d3 => "AM33".to_string(),
         0x8664 => "AMD64".to_string(),
@@ -114,9 +117,9 @@ pub fn machine_to_string(p: u16) -> String{
     }
 }
 
-pub fn file_characteristics_to_strings(p: u16) -> Vec<String>{
+pub fn file_characteristics_to_strings(p: u16) -> Vec<String> {
     let mut res = vec![];
-    let characteristics = hashmap!{
+    let characteristics = hashmap! {
         0x0001 => "RELOCS_STRIPPED".to_string(),
         0x0002 => "EXECUTABLE_IMAGE".to_string(),
         0x0004 => "LINE_NUMS_STRIPPED".to_string(),
@@ -133,19 +136,19 @@ pub fn file_characteristics_to_strings(p: u16) -> Vec<String>{
         0x3000 => "UP_SYSTEM_ONLY".to_string(),
         0x8000 => "BYTES_REVERSED_HI".to_string()
     };
-    for (i, s) in characteristics{
-        if i & p != 0{
+    for (i, s) in characteristics {
+        if i & p != 0 {
             res.push(s.clone());
         }
     }
-    if res.len() == 0{
+    if res.len() == 0 {
         res.push("INVALID".to_string());
     }
     res
 }
 
-pub fn subsystem_to_string(p: u16) -> String{
-    match p{
+pub fn subsystem_to_string(p: u16) -> String {
+    match p {
         0 => "UNKNOWN".to_string(),
         1 => "NATIVE".to_string(),
         2 => "WINDOWS_GUI".to_string(),
@@ -164,9 +167,9 @@ pub fn subsystem_to_string(p: u16) -> String{
     }
 }
 
-pub fn dll_characteristics_to_strings(p: u16) -> Vec<String>{
+pub fn dll_characteristics_to_strings(p: u16) -> Vec<String> {
     let mut res = vec![];
-    let characteristics = hashmap!{
+    let characteristics = hashmap! {
         0x0020 => "HIGH_ENTROPY_VA".to_string(),
         0x0040 => "DYNAMIC_BASE".to_string(),
         0x0080 => "FORCE_INTEGRITY".to_string(),
@@ -179,28 +182,28 @@ pub fn dll_characteristics_to_strings(p: u16) -> Vec<String>{
         0x3000 => "GUARD_CF".to_string(),
         0x8000 => "TERMINAL_SERVER_AWARE".to_string()
     };
-    for (i, s) in characteristics{
-        if i & p != 0{
+    for (i, s) in characteristics {
+        if i & p != 0 {
             res.push(s.clone());
         }
     }
-    if res.len() == 0{
+    if res.len() == 0 {
         res.push("INVALID".to_string());
     }
     res
 }
 
-pub fn magic_to_string(p: u16) -> String{
-    match p{
+pub fn magic_to_string(p: u16) -> String {
+    match p {
         0x010b => "PE32".to_string(),
         0x020b => "PE32_PLUS".to_string(),
         _ => "INVALID".to_string(),
     }
 }
 
-pub fn section_characteristics_to_strings(p: u32) -> Vec<String>{
+pub fn section_characteristics_to_strings(p: u32) -> Vec<String> {
     let mut res = vec![];
-    let characteristics = hashmap!{
+    let characteristics = hashmap! {
         0x00000008 => "TYPE_NO_PAD".to_string(),
         0x00000020 => "CNT_CODE".to_string(),
         0x00000040 => "CNT_INITIALIZED_DATA".to_string(),
@@ -237,12 +240,12 @@ pub fn section_characteristics_to_strings(p: u32) -> Vec<String>{
         0x40000000 => "MEM_READ".to_string(),
         0x80000000 => "MEM_WRITE".to_string()
     };
-    for (i, s) in characteristics{
-        if i & p != 0{
+    for (i, s) in characteristics {
+        if i & p != 0 {
             res.push(s.clone());
         }
     }
-    if res.len() == 0{
+    if res.len() == 0 {
         res.push("INVALID".to_string());
     }
     res
