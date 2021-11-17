@@ -1,4 +1,4 @@
-# DeepMal 
+# mlware 
 
 Static malware analysis using machine learning.
 
