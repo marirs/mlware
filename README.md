@@ -1,4 +1,4 @@
-# d3t3ct 
+# mlware 
 
 Static malware detection using machine learning.
 

@@ -6,7 +6,7 @@ fn main() {
     }
     let model_file = &args[1];
     let file_to_test = &args[2];
-    let score = d3t3ct::predict(model_file, file_to_test).unwrap();
+    let score = mlware::predict(model_file, file_to_test).unwrap();
     let label = if score[0] < 0.15 {
         "Benign"
     } else if score[0] < 0.6 {
