@@ -113,7 +113,7 @@ impl ByteHistogramFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(&self, raw_obj: &Vec<u32>) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &[u32]) -> Result<Vec<f64>> {
         let sum: u32 = raw_obj.iter().sum();
         let normalized: Vec<f64> = raw_obj.iter().map(|m| *m as f64 / sum as f64).collect();
         Ok(normalized)
@@ -171,7 +171,7 @@ impl ByteEntropyHistogramFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(&self, raw_obj: &Vec<u32>) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &[u32]) -> Result<Vec<f64>> {
         let sum: u32 = raw_obj.iter().sum();
         let normalized: Vec<f64> = raw_obj.iter().map(|m| *m as f64 / sum as f64).collect();
         Ok(normalized)
@@ -318,13 +318,13 @@ impl HeaderFileInfoFeature {
                 hashmap! {
                     "coff".to_string() => hashmap!{
                         "timestamp".to_string() => vec![pe.file_header().TimeDateStamp as f64],
-                        "machine".to_string() => crate::utils::hasher_bytes(10, &crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
+                        "machine".to_string() => crate::utils::hasher_bytes(10, crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
                         "characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &characteristics_bytes)?
                     },
                     "optional".to_string() => hashmap!{
-                        "subsystem".to_string() => crate::utils::hasher_bytes(10, &crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
+                        "subsystem".to_string() => crate::utils::hasher_bytes(10, crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
                         "dll_characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &dll_characteristics_bytes)?,
-                        "magic".to_string() => crate::utils::hasher_bytes(10, &crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
+                        "magic".to_string() => crate::utils::hasher_bytes(10, crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
                         "major_image_version".to_string() => vec![pe.optional_header().ImageVersion.Major as f64],
                         "minor_image_version".to_string() => vec![pe.optional_header().ImageVersion.Minor as f64],
                         "major_linker_version".to_string() => vec![pe.optional_header().LinkerVersion.Major as f64],
@@ -351,13 +351,13 @@ impl HeaderFileInfoFeature {
                 hashmap! {
                     "coff".to_string() => hashmap!{
                         "timestamp".to_string() => vec![pe.file_header().TimeDateStamp as f64],
-                        "machine".to_string() => crate::utils::hasher_bytes(10, &crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
+                        "machine".to_string() => crate::utils::hasher_bytes(10, crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
                         "characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &characteristics_bytes)?
                     },
                     "optional".to_string() => hashmap!{
-                        "subsystem".to_string() => crate::utils::hasher_bytes(10, &crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
+                        "subsystem".to_string() => crate::utils::hasher_bytes(10, crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
                         "dll_characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &dll_characteristics_bytes)?,
-                        "magic".to_string() => crate::utils::hasher_bytes(10, &crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
+                        "magic".to_string() => crate::utils::hasher_bytes(10, crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
                         "major_image_version".to_string() => vec![pe.optional_header().ImageVersion.Major as f64],
                         "minor_image_version".to_string() => vec![pe.optional_header().ImageVersion.Minor as f64],
                         "major_linker_version".to_string() => vec![pe.optional_header().LinkerVersion.Major as f64],
@@ -499,7 +499,7 @@ impl GeneralFileInfoFeature {
             Some(pelite::PeFile::T32(pe)) => hashmap! {
                 "size".to_string() => vec![bytes.len() as f64],
                 "vsize".to_string() => vec![self.get_pe32_virtual_size(pe) as f64],
-                "has_debug".to_string() => vec![if let Ok(_) = pe.debug() {1.0} else {0.0}],
+                "has_debug".to_string() => vec![if pe.debug().is_ok() {1.0} else {0.0}],
                 "exports".to_string() => {
                     match pe.exports(){
                         Err(pelite::Error::Null) => vec![0.0],
@@ -514,16 +514,16 @@ impl GeneralFileInfoFeature {
                     }
                 },
                 "imports".to_string() => vec![self.get_pe32_imports_count(pe)? as f64],
-                "has_relocations".to_string() => vec![if let Ok(_) = pe.base_relocs() {1.0} else {0.0}],
-                "has_resources".to_string() => vec![if let Ok(_) = pe.resources() {1.0} else {0.0}],
-                "has_signature".to_string() => vec![if let Ok(_) = pe.security() {1.0} else {0.0}],
-                "has_tls".to_string() => vec![if let Ok(_) = pe.tls() {1.0} else {0.0}],
+                "has_relocations".to_string() => vec![if pe.base_relocs().is_ok() {1.0} else {0.0}],
+                "has_resources".to_string() => vec![if pe.resources().is_ok() {1.0} else {0.0}],
+                "has_signature".to_string() => vec![if pe.security().is_ok() {1.0} else {0.0}],
+                "has_tls".to_string() => vec![if pe.tls().is_ok() {1.0} else {0.0}],
                 "symbols".to_string() => vec![pe.file_header().NumberOfSymbols as f64]
             },
             Some(pelite::PeFile::T64(pe)) => hashmap! {
                 "size".to_string() => vec![bytes.len() as f64],
                 "vsize".to_string() => vec![self.get_pe64_virtual_size(pe) as f64],
-                "has_debug".to_string() => vec![if let Ok(_) = pe.debug() {1.0} else {0.0}],
+                "has_debug".to_string() => vec![if pe.debug().is_ok() {1.0} else {0.0}],
                 "exports".to_string() => {
                     match pe.exports(){
                         Err(pelite::Error::Null) => vec![0.0],
@@ -531,17 +531,17 @@ impl GeneralFileInfoFeature {
                             if let Ok(by) = p.by(){
                                 vec![by.iter().count() as f64]
                             }else{
-                                vec![0.0 as f64]
+                                vec![0.0_f64]
                             }
                         },
                         Err(e) => return Err(crate::error::Error::PeLite(e))
                     }
                 },
                 "imports".to_string() => vec![self.get_pe64_imports_count(pe)? as f64],
-                "has_relocations".to_string() => vec![if let Ok(_) = pe.base_relocs() {1.0} else {0.0}],
-                "has_resources".to_string() => vec![if let Ok(_) = pe.resources() {1.0} else {0.0}],
-                "has_signature".to_string() => vec![if let Ok(_) = pe.security() {1.0} else {0.0}],
-                "has_tls".to_string() => vec![if let Ok(_) = pe.tls() {1.0} else {0.0}],
+                "has_relocations".to_string() => vec![if pe.base_relocs().is_ok() {1.0} else {0.0}],
+                "has_resources".to_string() => vec![if pe.resources().is_ok() {1.0} else {0.0}],
+                "has_signature".to_string() => vec![if pe.security().is_ok() {1.0} else {0.0}],
+                "has_tls".to_string() => vec![if pe.tls().is_ok() {1.0} else {0.0}],
                 "symbols".to_string() => vec![pe.file_header().NumberOfSymbols as f64]
             },
         };
