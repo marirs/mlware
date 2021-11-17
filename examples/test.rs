@@ -7,5 +7,5 @@ fn main() {
     let model_file = &args[1];
     let file_to_test = &args[2];
     let score = deepmal::predict(model_file, file_to_test).unwrap();
-    println!("{:?}", score[0] * 100.0);
+    println!("{:?}", score[0]);
 }
