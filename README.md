@@ -1,4 +1,4 @@
-# Predict Malware's 
+# DeepMal 
 
 Predict Malware's using machine learning trained model.
 
