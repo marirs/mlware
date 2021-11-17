@@ -1,8 +1,8 @@
 [package]
-name = "mlware"
+name = "d3t3ct"
 version = "0.2.1"
 authors = ["Marirs <marirs@gmail.com>"]
-description = "Static malware analysis using machine learning"
+description = "Static malware detection using machine learning"
 keywords = []
 edition = "2018"
 

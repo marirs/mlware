@@ -1,6 +1,6 @@
-# mlware 
+# d3t3ct 
 
-Static malware analysis using machine learning.
+Static malware detection using machine learning.
 
 ### Requirements
 - Rust 1.50+

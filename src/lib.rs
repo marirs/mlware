@@ -57,7 +57,7 @@ pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>> 
     //! Predict a given PE executable to see if its a malware, suspicious or benign file.
     //! ## Example
     //! ```rust
-    //! use deepmal::predict;
+    //! use d3t3ct::predict;
     //!
     //! let score = predict("rs-model/model.txt", "data/Demo64.dll").unwrap();
     //! println!("{:?}", score[0]);
