@@ -17,9 +17,14 @@ Static malware detection using machine learning.
 brew install cmake libomp lightgbm
 ```
 
-- Linux
+- Linux Intel
 ```bash
 apt install -y cmake libclang-dev libc++-dev gcc-multilib
+```
+
+- Linux Arm
+```bash
+apt install -y cmake libclang-dev libc++-dev gcc-multilib-arm-linux-gnueabihf
 ```
 
 ### Compiling 
