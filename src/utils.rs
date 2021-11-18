@@ -52,7 +52,7 @@ pub fn hashing_transform(n_features: u32, data: &[Vec<(&[u8], f64)>]) -> Result<
 }
 
 pub fn hasher_bytes(width: u32, data: &[u8]) -> Result<Vec<f64>> {
-    hashing_transform(width, &vec![vec![(data, 1.0)]])
+    hashing_transform(width, &[vec![(data, 1.0)]])
 }
 
 pub fn hasher_bytes_vec(width: u32, data: &Vec<&[u8]>) -> Result<Vec<f64>> {
