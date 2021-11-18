@@ -928,7 +928,7 @@ impl ExportsInfoFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(&self, raw_obj: &Vec<String>) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &[String]) -> Result<Vec<f64>> {
         let vv = raw_obj.iter().map(|s| s.as_bytes()).collect::<Vec<&[u8]>>();
         let exports_hashed = hasher_bytes_vec(128, &vv)?;
         Ok(exports_hashed)
@@ -989,12 +989,12 @@ impl DataDirectoryFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(&self, raw_obj: &Vec<(u32, u32)>) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &[(u32, u32)]) -> Result<Vec<f64>> {
         let mut res = vec![0.0; 2 * self.name_order.len()];
         let mut i = 0;
         while i < raw_obj.len() {
-            res[2 * i] = raw_obj[i].0.clone() as f64;
-            res[2 * i + 1] = raw_obj[i].1.clone() as f64;
+            res[2 * i] = raw_obj[i].0 as f64;
+            res[2 * i + 1] = raw_obj[i].1 as f64;
             i += 2;
         }
         Ok(res)
