@@ -42,11 +42,12 @@ pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Resu
         indptr.push(size);
     }
     let mut res = vec![0.0; n_features as usize];
-    for i in indptr.windows(2) {
+    if let Some(i) = indptr.windows(2).next() {
+    // for i in indptr.windows(2) {
         for ii in i[0]..i[1] {
             res[indices[ii] as usize] += values[ii];
         }
-        break;
+        // break;
     }
     Ok(res)
 }
@@ -141,7 +142,7 @@ pub fn file_characteristics_to_strings(p: u16) -> Vec<String> {
             res.push(s.clone());
         }
     }
-    if res.len() == 0 {
+    if res.is_empty() {
         res.push("INVALID".to_string());
     }
     res
@@ -187,7 +188,7 @@ pub fn dll_characteristics_to_strings(p: u16) -> Vec<String> {
             res.push(s.clone());
         }
     }
-    if res.len() == 0 {
+    if res.is_empty() {
         res.push("INVALID".to_string());
     }
     res
@@ -245,7 +246,7 @@ pub fn section_characteristics_to_strings(p: u32) -> Vec<String> {
             res.push(s.clone());
         }
     }
-    if res.len() == 0 {
+    if res.is_empty() {
         res.push("INVALID".to_string());
     }
     res
