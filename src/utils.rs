@@ -59,15 +59,15 @@ pub fn hasher_bytes_vec(width: u32, data: &Vec<&[u8]>) -> Result<Vec<f64>> {
     hashing_transform(width, &vec![data.iter().map(|s| (*s, 1.0)).collect()])
 }
 
-pub fn hasher_bytes_u32_pairs(width: u32, data: &Vec<(&[u8], u32)>) -> Result<Vec<f64>> {
+pub fn hasher_bytes_u32_pairs(width: u32, data: &[(&[u8], u32)]) -> Result<Vec<f64>> {
     hashing_transform(
         width,
-        &vec![data.iter().map(|(s, i)| (*s, *i as f64)).collect()],
+        &[data.iter().map(|(s, i)| (*s, *i as f64)).collect()],
     )
 }
 
 pub fn hasher_bytes_f64_pairs(width: u32, data: &Vec<(&[u8], f64)>) -> Result<Vec<f64>> {
-    hashing_transform(width, &vec![data.iter().map(|(s, i)| (*s, *i)).collect()])
+    hashing_transform(width, &[data.iter().map(|(s, i)| (*s, *i)).collect()])
 }
 
 /// Calculates the entropy for the given buffer
