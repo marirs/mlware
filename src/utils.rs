@@ -14,7 +14,7 @@ pub fn align(value: &u64, align_on: &u64) -> u64 {
     if align_on > &0u64 && value % align_on > 0 {
         value + (align_on - (value % align_on))
     } else {
-        value.clone()
+        *value
     }
 }
 
@@ -23,10 +23,11 @@ pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Resu
     let mut indptr = vec![0];
     let mut values = vec![];
     let mut size = 0;
+    let error_margin = f64::EPSILON;
 
     for x in data {
         for (f, v) in x {
-            if v == &0.0 {
+            if (v - 0.0_f64).abs() < error_margin {
                 continue;
             }
             let h = murmur3::murmur3_32(&mut std::io::Cursor::new(f), 0)? as i32;
