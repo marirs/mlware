@@ -1,0 +1,30 @@
+name: x86_64
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - '**/README.md'
+
+jobs:
+  build-nix:
+    name: Test Rust ${{ matrix.rust }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rust: stable, os: ubuntu-latest }
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt install -y cmake libclang-dev libc++-dev gcc-multilib
+      - name: buid
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          command: build
