@@ -18,6 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install -y cmake libclang-dev libc++-dev gcc-multilib-arm-linux-gnueabihf
+          sudo ldconfig
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
