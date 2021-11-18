@@ -18,7 +18,7 @@ pub fn align(value: &u64, align_on: &u64) -> u64 {
     }
 }
 
-pub fn hashing_transform(n_features: u32, data: &Vec<Vec<(&[u8], f64)>>) -> Result<Vec<f64>> {
+pub fn hashing_transform(n_features: u32, data: &[Vec<(&[u8], f64)>]) -> Result<Vec<f64>> {
     let mut indices = vec![];
     let mut indptr = vec![0];
     let mut values = vec![];

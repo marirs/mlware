@@ -1,7 +1,24 @@
-use crate::Result;
+use crate::{
+    utils::{
+        align, dll_characteristics_to_strings, entropy, file_characteristics_to_strings,
+        hasher_bytes, hasher_bytes_f64_pairs, hasher_bytes_u32_pairs, hasher_bytes_vec,
+        machine_to_string, magic_to_string, section_characteristics_to_strings,
+        subsystem_to_string,
+    },
+    Result,
+};
 use maplit::hashmap;
-use pelite::pe32::Pe as Pe32;
-use pelite::pe64::Pe as Pe64;
+use pelite::{
+    image::{
+        IMAGE_FILE_HEADER, IMAGE_OPTIONAL_HEADER32, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_READ,
+        IMAGE_SCN_MEM_WRITE,
+    },
+    pe32::Pe as Pe32,
+    pe64::Pe as Pe64,
+    PeFile,
+};
+use regex::bytes::Regex;
+use std::{collections::HashMap, mem::size_of, str::from_utf8};
 
 #[derive(Debug)]
 pub enum Feature {
@@ -17,7 +34,7 @@ pub enum Feature {
 }
 
 impl Feature {
-    pub fn feature_vector(&self, bytes: &[u8], pe: &Option<pelite::PeFile>) -> Result<Vec<f64>> {
+    pub fn feature_vector(&self, bytes: &[u8], pe: &Option<PeFile>) -> Result<Vec<f64>> {
         match self {
             Feature::ByteHistogram(b) => b.process_raw_features(&b.raw_features(bytes)?),
             Feature::ByteEntropyHistogram(b) => b.process_raw_features(&b.raw_features(bytes)?),
@@ -80,7 +97,7 @@ impl PeFeaturesExtractor {
 
     pub fn feature_vector(&self, bytes: &[u8]) -> Result<Vec<f64>> {
         let mut res = vec![];
-        let pe = match pelite::PeFile::from_bytes(bytes) {
+        let pe = match PeFile::from_bytes(bytes) {
             Ok(s) => Some(s),
             _ => None,
         };
@@ -194,17 +211,14 @@ impl StringExtractorFeature {
         Ok(StringExtractorFeature {
             name: "strings".to_string(),
             dim: 1 + 1 + 1 + 96 + 1 + 1 + 1 + 1 + 1,
-            allstrings: regex::bytes::Regex::new(r"(?-u)[\x20-\x7f]{5,}")?,
-            paths: regex::bytes::Regex::new(r"(?i)c:\\")?,
-            urls: regex::bytes::Regex::new(r"(?i)https?://")?,
-            registry: regex::bytes::Regex::new(r"HKEY_")?,
-            mz: regex::bytes::Regex::new(r"MZ")?,
+            allstrings: Regex::new(r"(?-u)[\x20-\x7f]{5,}")?,
+            paths: Regex::new(r"(?i)c:\\")?,
+            urls: Regex::new(r"(?i)https?://")?,
+            registry: Regex::new(r"HKEY_")?,
+            mz: Regex::new(r"MZ")?,
         })
     }
-    pub fn raw_features(
-        &self,
-        bytes: &[u8],
-    ) -> Result<std::collections::HashMap<String, Vec<f64>>> {
+    pub fn raw_features(&self, bytes: &[u8]) -> Result<HashMap<String, Vec<f64>>> {
         let mut string_lengths = vec![];
         let mut as_shifted_string = vec![];
         let mut c = vec![0.0; 96];
@@ -240,10 +254,7 @@ impl StringExtractorFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(
-        &self,
-        raw_obj: &std::collections::HashMap<String, Vec<f64>>,
-    ) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &HashMap<String, Vec<f64>>) -> Result<Vec<f64>> {
         let mut res = vec![];
         let mut hist_divisor = raw_obj["printables"][0];
         if hist_divisor == 0.0 {
@@ -279,9 +290,8 @@ impl HeaderFileInfoFeature {
     pub fn raw_features(
         &self,
         _bytes: &[u8],
-        pe: &Option<pelite::PeFile>,
-    ) -> Result<std::collections::HashMap<String, std::collections::HashMap<String, Vec<f64>>>>
-    {
+        pe: &Option<PeFile>,
+    ) -> Result<HashMap<String, HashMap<String, Vec<f64>>>> {
         let res = match pe {
             None => hashmap! {
                 "coff".to_string() => hashmap!{
@@ -306,25 +316,24 @@ impl HeaderFileInfoFeature {
                     "sizeof_heap_commit".to_string() => vec![0.0]
                 }
             },
-            Some(pelite::PeFile::T32(pe)) => {
+            Some(PeFile::T32(pe)) => {
                 let characteristics =
-                    crate::utils::file_characteristics_to_strings(pe.file_header().Characteristics);
+                    file_characteristics_to_strings(pe.file_header().Characteristics);
                 let characteristics_bytes = characteristics.iter().map(|s| s.as_bytes()).collect();
-                let dll_characteristics = crate::utils::dll_characteristics_to_strings(
-                    pe.optional_header().DllCharacteristics,
-                );
+                let dll_characteristics =
+                    dll_characteristics_to_strings(pe.optional_header().DllCharacteristics);
                 let dll_characteristics_bytes =
                     dll_characteristics.iter().map(|s| s.as_bytes()).collect();
                 hashmap! {
                     "coff".to_string() => hashmap!{
                         "timestamp".to_string() => vec![pe.file_header().TimeDateStamp as f64],
-                        "machine".to_string() => crate::utils::hasher_bytes(10, crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
-                        "characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &characteristics_bytes)?
+                        "machine".to_string() => hasher_bytes(10, machine_to_string(pe.file_header().Machine).as_bytes())?,
+                        "characteristics".to_string() => hasher_bytes_vec(10, &characteristics_bytes)?
                     },
                     "optional".to_string() => hashmap!{
-                        "subsystem".to_string() => crate::utils::hasher_bytes(10, crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
-                        "dll_characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &dll_characteristics_bytes)?,
-                        "magic".to_string() => crate::utils::hasher_bytes(10, crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
+                        "subsystem".to_string() => hasher_bytes(10, subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
+                        "dll_characteristics".to_string() => hasher_bytes_vec(10, &dll_characteristics_bytes)?,
+                        "magic".to_string() => hasher_bytes(10, magic_to_string(pe.optional_header().Magic).as_bytes())?,
                         "major_image_version".to_string() => vec![pe.optional_header().ImageVersion.Major as f64],
                         "minor_image_version".to_string() => vec![pe.optional_header().ImageVersion.Minor as f64],
                         "major_linker_version".to_string() => vec![pe.optional_header().LinkerVersion.Major as f64],
@@ -339,25 +348,24 @@ impl HeaderFileInfoFeature {
                     }
                 }
             }
-            Some(pelite::PeFile::T64(pe)) => {
+            Some(PeFile::T64(pe)) => {
                 let characteristics =
-                    crate::utils::file_characteristics_to_strings(pe.file_header().Characteristics);
+                    file_characteristics_to_strings(pe.file_header().Characteristics);
                 let characteristics_bytes = characteristics.iter().map(|s| s.as_bytes()).collect();
-                let dll_characteristics = crate::utils::dll_characteristics_to_strings(
-                    pe.optional_header().DllCharacteristics,
-                );
+                let dll_characteristics =
+                    dll_characteristics_to_strings(pe.optional_header().DllCharacteristics);
                 let dll_characteristics_bytes =
                     dll_characteristics.iter().map(|s| s.as_bytes()).collect();
                 hashmap! {
                     "coff".to_string() => hashmap!{
                         "timestamp".to_string() => vec![pe.file_header().TimeDateStamp as f64],
-                        "machine".to_string() => crate::utils::hasher_bytes(10, crate::utils::machine_to_string(pe.file_header().Machine).as_bytes())?,
-                        "characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &characteristics_bytes)?
+                        "machine".to_string() => hasher_bytes(10, machine_to_string(pe.file_header().Machine).as_bytes())?,
+                        "characteristics".to_string() => hasher_bytes_vec(10, &characteristics_bytes)?
                     },
                     "optional".to_string() => hashmap!{
-                        "subsystem".to_string() => crate::utils::hasher_bytes(10, crate::utils::subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
-                        "dll_characteristics".to_string() => crate::utils::hasher_bytes_vec(10, &dll_characteristics_bytes)?,
-                        "magic".to_string() => crate::utils::hasher_bytes(10, crate::utils::magic_to_string(pe.optional_header().Magic).as_bytes())?,
+                        "subsystem".to_string() => hasher_bytes(10, subsystem_to_string(pe.optional_header().Subsystem).as_bytes())?,
+                        "dll_characteristics".to_string() => hasher_bytes_vec(10, &dll_characteristics_bytes)?,
+                        "magic".to_string() => hasher_bytes(10, magic_to_string(pe.optional_header().Magic).as_bytes())?,
                         "major_image_version".to_string() => vec![pe.optional_header().ImageVersion.Major as f64],
                         "minor_image_version".to_string() => vec![pe.optional_header().ImageVersion.Minor as f64],
                         "major_linker_version".to_string() => vec![pe.optional_header().LinkerVersion.Major as f64],
@@ -378,7 +386,7 @@ impl HeaderFileInfoFeature {
 
     pub fn process_raw_features(
         &self,
-        raw_obj: &std::collections::HashMap<String, std::collections::HashMap<String, Vec<f64>>>,
+        raw_obj: &HashMap<String, HashMap<String, Vec<f64>>>,
     ) -> Result<Vec<f64>> {
         let mut res = vec![];
         res.extend(raw_obj["coff"]["timestamp"].clone());
@@ -412,12 +420,12 @@ impl GeneralFileInfoFeature {
     fn get_pe32_virtual_size(&self, pe: &pelite::pe32::PeFile) -> usize {
         let mut res = 0;
         res += pe.dos_header().e_lfanew as usize;
-        res += std::mem::size_of::<pelite::image::IMAGE_FILE_HEADER>();
-        res += std::mem::size_of::<pelite::image::IMAGE_OPTIONAL_HEADER32>();
+        res += size_of::<IMAGE_FILE_HEADER>();
+        res += size_of::<IMAGE_OPTIONAL_HEADER32>();
         for s in pe.section_headers() {
             res = res.max(s.virtual_range().end as usize);
         }
-        res = crate::utils::align(
+        res = align(
             &(res as u64),
             &(pe.optional_header().SectionAlignment as u64),
         ) as usize;
@@ -427,12 +435,12 @@ impl GeneralFileInfoFeature {
     fn get_pe64_virtual_size(&self, pe: &pelite::pe64::PeFile) -> usize {
         let mut res = 0;
         res += pe.dos_header().e_lfanew as usize;
-        res += std::mem::size_of::<pelite::image::IMAGE_FILE_HEADER>();
-        res += std::mem::size_of::<pelite::image::IMAGE_OPTIONAL_HEADER32>();
+        res += size_of::<IMAGE_FILE_HEADER>();
+        res += size_of::<IMAGE_OPTIONAL_HEADER32>();
         for s in pe.section_headers() {
             res = res.max(s.virtual_range().end as usize);
         }
-        res = crate::utils::align(
+        res = align(
             &(res as u64),
             &(pe.optional_header().SectionAlignment as u64),
         ) as usize;
@@ -481,8 +489,8 @@ impl GeneralFileInfoFeature {
     pub fn raw_features(
         &self,
         bytes: &[u8],
-        pe: &Option<pelite::PeFile>,
-    ) -> Result<std::collections::HashMap<String, Vec<f64>>> {
+        pe: &Option<PeFile>,
+    ) -> Result<HashMap<String, Vec<f64>>> {
         let res = match pe {
             None => hashmap! {
                 "size".to_string() => vec![bytes.len() as f64],
@@ -496,7 +504,7 @@ impl GeneralFileInfoFeature {
                 "has_tls".to_string() => vec![0.0],
                 "symbols".to_string() => vec![0.0]
             },
-            Some(pelite::PeFile::T32(pe)) => hashmap! {
+            Some(PeFile::T32(pe)) => hashmap! {
                 "size".to_string() => vec![bytes.len() as f64],
                 "vsize".to_string() => vec![self.get_pe32_virtual_size(pe) as f64],
                 "has_debug".to_string() => vec![if pe.debug().is_ok() {1.0} else {0.0}],
@@ -507,7 +515,7 @@ impl GeneralFileInfoFeature {
                             if let Ok(by) = p.by(){
                                 vec![by.iter().count() as f64]
                             }else{
-                                vec![0.0 as f64]
+                                vec![0.0_f64]
                             }
                         },
                         Err(e) => return Err(crate::error::Error::PeLite(e))
@@ -520,7 +528,7 @@ impl GeneralFileInfoFeature {
                 "has_tls".to_string() => vec![if pe.tls().is_ok() {1.0} else {0.0}],
                 "symbols".to_string() => vec![pe.file_header().NumberOfSymbols as f64]
             },
-            Some(pelite::PeFile::T64(pe)) => hashmap! {
+            Some(PeFile::T64(pe)) => hashmap! {
                 "size".to_string() => vec![bytes.len() as f64],
                 "vsize".to_string() => vec![self.get_pe64_virtual_size(pe) as f64],
                 "has_debug".to_string() => vec![if pe.debug().is_ok() {1.0} else {0.0}],
@@ -548,10 +556,7 @@ impl GeneralFileInfoFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(
-        &self,
-        raw_obj: &std::collections::HashMap<String, Vec<f64>>,
-    ) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &HashMap<String, Vec<f64>>) -> Result<Vec<f64>> {
         let mut res = vec![];
         res.extend(raw_obj["size"].clone());
         res.extend(raw_obj["vsize"].clone());
@@ -585,13 +590,12 @@ impl SectionInfoFeature {
     pub fn raw_features(
         &self,
         bytes: &[u8],
-        pe: &Option<pelite::PeFile>,
-    ) -> Result<std::collections::HashMap<String, Vec<std::collections::HashMap<String, Vec<f64>>>>>
-    {
+        pe: &Option<PeFile>,
+    ) -> Result<HashMap<String, Vec<HashMap<String, Vec<f64>>>>> {
         let res = match pe {
             None => hashmap! {
                 "entry".to_string() => vec![hashmap!{
-                    "name".to_string() => crate::utils::hasher_bytes(50, b"")?,
+                    "name".to_string() => hasher_bytes(50, b"")?,
                     "characteristics".to_string() => vec![0.0; 50]
                 }],
                 "sections".to_string() => vec![hashmap!{
@@ -600,12 +604,12 @@ impl SectionInfoFeature {
                     "empty_named_sections_len".to_string() => vec![0.0],
                     "rx_sections_len".to_string() => vec![0.0],
                     "w_sections_len".to_string() => vec![0.0],
-                    "section_sizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &vec![])?,
-                    "section_entropies".to_string() => crate::utils::hasher_bytes_f64_pairs(50, &vec![])?,
-                    "section_vsizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &vec![])?
+                    "section_sizes".to_string() => hasher_bytes_u32_pairs(50, &vec![])?,
+                    "section_entropies".to_string() => hasher_bytes_f64_pairs(50, &vec![])?,
+                    "section_vsizes".to_string() => hasher_bytes_u32_pairs(50, &vec![])?
                 }]
             },
-            Some(pelite::PeFile::T32(pe)) => {
+            Some(PeFile::T32(pe)) => {
                 let entry_point_address = pe.optional_header().AddressOfEntryPoint;
                 let mut res = hashmap! {
                     "entry".to_string() => vec![],
@@ -624,14 +628,14 @@ impl SectionInfoFeature {
                     {
                         if let Some(ss) = res.get_mut("entry") {
                             let section_characteristics =
-                                crate::utils::section_characteristics_to_strings(s.Characteristics);
+                                section_characteristics_to_strings(s.Characteristics);
                             let section_characteristics_bytes = section_characteristics
                                 .iter()
                                 .map(|s| s.as_bytes())
                                 .collect();
                             ss.push(hashmap!{
-                                "name".to_string() => crate::utils::hasher_bytes(50, &std::str::from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
-                                "characteristics".to_string() => crate::utils::hasher_bytes_vec(50, &section_characteristics_bytes)?,
+                                "name".to_string() => hasher_bytes(50, from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
+                                "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
                             });
                         }
                     }
@@ -641,33 +645,27 @@ impl SectionInfoFeature {
                     if s.Name[0] == 0 {
                         empty_named_sections_len += 1;
                     }
-                    if s.Characteristics & pelite::image::IMAGE_SCN_MEM_READ != 0
-                        && s.Characteristics & pelite::image::IMAGE_SCN_MEM_EXECUTE != 0
+                    if s.Characteristics & IMAGE_SCN_MEM_READ != 0
+                        && s.Characteristics & IMAGE_SCN_MEM_EXECUTE != 0
                     {
                         rx_sections_len += 1;
                     }
-                    if s.Characteristics & pelite::image::IMAGE_SCN_MEM_WRITE != 0 {
+                    if s.Characteristics & IMAGE_SCN_MEM_WRITE != 0 {
                         w_sections_len += 1;
                     }
                     sizes.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.SizeOfRawData,
                     ));
                     entropies.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
-                        crate::utils::entropy(
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
+                        entropy(
                             &bytes[s.PointerToRawData as usize
                                 ..(s.PointerToRawData + s.SizeOfRawData) as usize],
                         ),
                     ));
                     vsizes.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.VirtualSize,
                     ));
                 }
@@ -678,14 +676,14 @@ impl SectionInfoFeature {
                         "empty_named_sections_len".to_string() => vec![empty_named_sections_len as f64],
                         "rx_sections_len".to_string() => vec![rx_sections_len as f64],
                         "w_sections_len".to_string() => vec![w_sections_len as f64],
-                        "section_sizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &sizes)?,
-                        "section_entropies".to_string() => crate::utils::hasher_bytes_f64_pairs(50, &entropies)?,
-                        "section_vsizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &vsizes)?
+                        "section_sizes".to_string() => hasher_bytes_u32_pairs(50, &sizes)?,
+                        "section_entropies".to_string() => hasher_bytes_f64_pairs(50, &entropies)?,
+                        "section_vsizes".to_string() => hasher_bytes_u32_pairs(50, &vsizes)?
                     });
                 }
                 res
             }
-            Some(pelite::PeFile::T64(pe)) => {
+            Some(PeFile::T64(pe)) => {
                 let entry_point_address = pe.optional_header().AddressOfEntryPoint;
                 let mut res = hashmap! {
                     "entry".to_string() => vec![],
@@ -704,14 +702,14 @@ impl SectionInfoFeature {
                     {
                         if let Some(ss) = res.get_mut("entry") {
                             let section_characteristics =
-                                crate::utils::section_characteristics_to_strings(s.Characteristics);
+                                section_characteristics_to_strings(s.Characteristics);
                             let section_characteristics_bytes = section_characteristics
                                 .iter()
                                 .map(|s| s.as_bytes())
                                 .collect();
                             ss.push(hashmap!{
-                                "name".to_string() => crate::utils::hasher_bytes(50, &std::str::from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
-                                "characteristics".to_string() => crate::utils::hasher_bytes_vec(50, &section_characteristics_bytes)?,
+                                "name".to_string() => hasher_bytes(50, from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
+                                "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
                             });
                         }
                     }
@@ -721,33 +719,27 @@ impl SectionInfoFeature {
                     if s.Name[0] == 0 {
                         empty_named_sections_len += 1;
                     }
-                    if s.Characteristics & pelite::image::IMAGE_SCN_MEM_READ != 0
-                        && s.Characteristics & pelite::image::IMAGE_SCN_MEM_EXECUTE != 0
+                    if s.Characteristics & IMAGE_SCN_MEM_READ != 0
+                        && s.Characteristics & IMAGE_SCN_MEM_EXECUTE != 0
                     {
                         rx_sections_len += 1;
                     }
-                    if s.Characteristics & pelite::image::IMAGE_SCN_MEM_WRITE != 0 {
+                    if s.Characteristics & IMAGE_SCN_MEM_WRITE != 0 {
                         w_sections_len += 1;
                     }
                     sizes.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.SizeOfRawData,
                     ));
                     entropies.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
-                        crate::utils::entropy(
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
+                        entropy(
                             &bytes[s.PointerToRawData as usize
                                 ..(s.PointerToRawData + s.SizeOfRawData) as usize],
                         ),
                     ));
                     vsizes.push((
-                        std::str::from_utf8(&s.Name)?
-                            .trim_matches(char::from(0))
-                            .as_bytes(),
+                        from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.VirtualSize,
                     ));
                 }
@@ -758,9 +750,9 @@ impl SectionInfoFeature {
                         "empty_named_sections_len".to_string() => vec![empty_named_sections_len as f64],
                         "rx_sections_len".to_string() => vec![rx_sections_len as f64],
                         "w_sections_len".to_string() => vec![w_sections_len as f64],
-                        "section_sizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &sizes)?,
-                        "section_entropies".to_string() => crate::utils::hasher_bytes_f64_pairs(50, &entropies)?,
-                        "section_vsizes".to_string() => crate::utils::hasher_bytes_u32_pairs(50, &vsizes)?
+                        "section_sizes".to_string() => hasher_bytes_u32_pairs(50, &sizes)?,
+                        "section_entropies".to_string() => hasher_bytes_f64_pairs(50, &entropies)?,
+                        "section_vsizes".to_string() => hasher_bytes_u32_pairs(50, &vsizes)?
                     });
                 }
                 res
@@ -771,10 +763,7 @@ impl SectionInfoFeature {
 
     pub fn process_raw_features(
         &self,
-        raw_obj: &std::collections::HashMap<
-            String,
-            Vec<std::collections::HashMap<String, Vec<f64>>>,
-        >,
+        raw_obj: &HashMap<String, Vec<HashMap<String, Vec<f64>>>>,
     ) -> Result<Vec<f64>> {
         let mut res = vec![];
         res.extend(raw_obj["sections"][0]["sections_len"].clone());
@@ -809,11 +798,11 @@ impl ImportsInfoFeature {
     pub fn raw_features(
         &self,
         _bytes: &[u8],
-        pe: &Option<pelite::PeFile>,
-    ) -> Result<std::collections::HashMap<String, Vec<String>>> {
+        pe: &Option<PeFile>,
+    ) -> Result<HashMap<String, Vec<String>>> {
         let res = match pe {
             None => hashmap! {},
-            Some(pelite::PeFile::T32(pe)) => {
+            Some(PeFile::T32(pe)) => {
                 let mut res = hashmap! {};
                 if let Ok(imp) = pe.imports() {
                     for desc in imp {
@@ -838,7 +827,7 @@ impl ImportsInfoFeature {
                 }
                 res
             }
-            Some(pelite::PeFile::T64(pe)) => {
+            Some(PeFile::T64(pe)) => {
                 let mut res = hashmap! {};
                 if let Ok(imp) = pe.imports() {
                     for desc in imp {
@@ -867,12 +856,9 @@ impl ImportsInfoFeature {
         Ok(res)
     }
 
-    pub fn process_raw_features(
-        &self,
-        raw_obj: &std::collections::HashMap<String, Vec<String>>,
-    ) -> Result<Vec<f64>> {
+    pub fn process_raw_features(&self, raw_obj: &HashMap<String, Vec<String>>) -> Result<Vec<f64>> {
         let libraries: Vec<&[u8]> = raw_obj.iter().map(|(l, _)| l.as_bytes()).collect();
-        let libraries_hashed = crate::utils::hasher_bytes_vec(256, &libraries)?;
+        let libraries_hashed = hasher_bytes_vec(256, &libraries)?;
         let mut imports = vec![];
         for (l, s) in raw_obj {
             for ss in s {
@@ -880,7 +866,7 @@ impl ImportsInfoFeature {
             }
         }
         let imports_hashed =
-            crate::utils::hasher_bytes_vec(1024, &imports.iter().map(|s| s.as_bytes()).collect())?;
+            hasher_bytes_vec(1024, &imports.iter().map(|s| s.as_bytes()).collect())?;
         let mut res = vec![];
         res.extend(libraries_hashed);
         res.extend(imports_hashed);
@@ -903,10 +889,10 @@ impl ExportsInfoFeature {
         }
     }
 
-    pub fn raw_features(&self, _bytes: &[u8], pe: &Option<pelite::PeFile>) -> Result<Vec<String>> {
+    pub fn raw_features(&self, _bytes: &[u8], pe: &Option<PeFile>) -> Result<Vec<String>> {
         let res = match pe {
             None => vec![],
-            Some(pelite::PeFile::T32(pe)) => {
+            Some(PeFile::T32(pe)) => {
                 let mut res = vec![];
                 let exports = match pe.exports() {
                     Ok(s) => s,
@@ -922,7 +908,7 @@ impl ExportsInfoFeature {
                 }
                 res
             }
-            Some(pelite::PeFile::T64(pe)) => {
+            Some(PeFile::T64(pe)) => {
                 let mut res = vec![];
                 let exports = match pe.exports() {
                     Ok(s) => s,
@@ -944,7 +930,7 @@ impl ExportsInfoFeature {
 
     pub fn process_raw_features(&self, raw_obj: &Vec<String>) -> Result<Vec<f64>> {
         let vv = raw_obj.iter().map(|s| s.as_bytes()).collect::<Vec<&[u8]>>();
-        let exports_hashed = crate::utils::hasher_bytes_vec(128, &vv)?;
+        let exports_hashed = hasher_bytes_vec(128, &vv)?;
         Ok(exports_hashed)
     }
 }
@@ -982,21 +968,17 @@ impl DataDirectoryFeature {
         }
     }
 
-    pub fn raw_features(
-        &self,
-        _bytes: &[u8],
-        pe: &Option<pelite::PeFile>,
-    ) -> Result<Vec<(u32, u32)>> {
+    pub fn raw_features(&self, _bytes: &[u8], pe: &Option<PeFile>) -> Result<Vec<(u32, u32)>> {
         let res = match pe {
             None => vec![],
-            Some(pelite::PeFile::T32(pe)) => {
+            Some(PeFile::T32(pe)) => {
                 let mut res = vec![];
                 for dd in pe.data_directory() {
                     res.push((dd.VirtualAddress, dd.Size));
                 }
                 res
             }
-            Some(pelite::PeFile::T64(pe)) => {
+            Some(PeFile::T64(pe)) => {
                 let mut res = vec![];
                 for dd in pe.data_directory() {
                     res.push((dd.VirtualAddress, dd.Size));
