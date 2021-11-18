@@ -53,7 +53,7 @@ pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgb
     Ok(lgbm_model)
 }
 
-pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>> {
+pub fn predict<P: AsRef<Path>>(model_file: P, file: P) -> Result<Vec<f64>> {
     //! Predict a given PE executable to see if its a malware, suspicious or benign file.
     //! ## Example
     //! ```rust
@@ -64,6 +64,6 @@ pub fn predict<P: AsRef<Path>>(model_file: P, file_data: P) -> Result<Vec<f64>> 
     //! ```
     let lgbm_model = lightgbm::Booster::from_file(model_file.as_ref().to_str().unwrap())?;
     let extractor = features::PeFeaturesExtractor::new()?;
-    let features = extractor.feature_vector(&utils::load_file(file_data))?;
+    let features = extractor.feature_vector(&utils::load_file(file))?;
     Ok(lgbm_model.predict(vec![features])?[0].clone())
 }
