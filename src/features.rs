@@ -604,9 +604,9 @@ impl SectionInfoFeature {
                     "empty_named_sections_len".to_string() => vec![0.0],
                     "rx_sections_len".to_string() => vec![0.0],
                     "w_sections_len".to_string() => vec![0.0],
-                    "section_sizes".to_string() => hasher_bytes_u32_pairs(50, &vec![])?,
-                    "section_entropies".to_string() => hasher_bytes_f64_pairs(50, &vec![])?,
-                    "section_vsizes".to_string() => hasher_bytes_u32_pairs(50, &vec![])?
+                    "section_sizes".to_string() => hasher_bytes_u32_pairs(50, &[])?,
+                    "section_entropies".to_string() => hasher_bytes_f64_pairs(50, &[])?,
+                    "section_vsizes".to_string() => hasher_bytes_u32_pairs(50, &[])?
                 }]
             },
             Some(PeFile::T32(pe)) => {
