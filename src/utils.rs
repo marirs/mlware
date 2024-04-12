@@ -32,9 +32,9 @@ pub fn hashing_transform(n_features: u32, data: &[Vec<(&[u8], f64)>]) -> Result<
             }
             let h = murmur3::murmur3_32(&mut std::io::Cursor::new(f), 0)? as i32;
             if h == -2147483648 {
-                indices.push((2147483647 - (n_features - 1)) as u32 % n_features);
+                indices.push((2147483647 - (n_features - 1)) % n_features);
             } else {
-                indices.push((h as i32).abs() as u32 % n_features);
+                indices.push((h as i32).unsigned_abs() % n_features);
             }
             let value = v * (((if h >= 0 { 1 } else { 0 }) * 2 - 1) as f64);
             values.push(value);

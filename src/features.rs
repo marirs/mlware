@@ -110,14 +110,14 @@ impl PeFeaturesExtractor {
 
 #[derive(Debug)]
 pub struct ByteHistogramFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
 impl ByteHistogramFeature {
     pub fn new() -> ByteHistogramFeature {
         ByteHistogramFeature {
-            name: String::from("histogram"),
+            _name: String::from("histogram"),
             dim: 256,
         }
     }
@@ -139,7 +139,7 @@ impl ByteHistogramFeature {
 
 #[derive(Debug)]
 pub struct ByteEntropyHistogramFeature {
-    name: String,
+    _name: String,
     dim: u32,
     window: usize,
     step: usize,
@@ -167,7 +167,7 @@ impl ByteEntropyHistogramFeature {
 
     pub fn new() -> ByteEntropyHistogramFeature {
         ByteEntropyHistogramFeature {
-            name: String::from("byteentropy"),
+            _name: String::from("byteentropy"),
             dim: 256,
             window: 2048,
             step: 1024,
@@ -197,19 +197,19 @@ impl ByteEntropyHistogramFeature {
 
 #[derive(Debug)]
 pub struct StringExtractorFeature {
-    name: String,
+    _name: String,
     dim: u32,
-    allstrings: regex::bytes::Regex,
-    paths: regex::bytes::Regex,
-    urls: regex::bytes::Regex,
-    registry: regex::bytes::Regex,
-    mz: regex::bytes::Regex,
+    allstrings: Regex,
+    paths: Regex,
+    urls: Regex,
+    registry: Regex,
+    mz: Regex,
 }
 
 impl StringExtractorFeature {
     pub fn new() -> Result<StringExtractorFeature> {
         Ok(StringExtractorFeature {
-            name: "strings".to_string(),
+            _name: "strings".to_string(),
             dim: 1 + 1 + 1 + 96 + 1 + 1 + 1 + 1 + 1,
             allstrings: Regex::new(r"(?-u)[\x20-\x7f]{5,}")?,
             paths: Regex::new(r"(?i)c:\\")?,
@@ -233,7 +233,7 @@ impl StringExtractorFeature {
         }
         let avlength = string_lengths.iter().sum::<usize>() as f64 / string_lengths.len() as f64;
         let csum: f64 = c.iter().sum();
-        let p: Vec<f64> = c.iter().map(|cc| *cc as f64 / csum).collect();
+        let p: Vec<f64> = c.iter().map(|cc| *cc / csum).collect();
         let h: f64 = p
             .iter()
             .map(|pp| -pp * f64::log2(*pp))
@@ -242,7 +242,7 @@ impl StringExtractorFeature {
             .sum();
         let res = hashmap! {
             "numstrings".to_string() => vec!(allstrings_len as f64),
-            "avlength".to_string() => vec!(avlength as f64),
+            "avlength".to_string() => vec!(avlength),
             "printabledist".to_string() => c,
             "printables".to_string() => vec![csum as f64],
             "entropy".to_string() => vec![h as f64],
@@ -275,14 +275,14 @@ impl StringExtractorFeature {
 
 #[derive(Debug)]
 pub struct HeaderFileInfoFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
 impl HeaderFileInfoFeature {
     pub fn new() -> HeaderFileInfoFeature {
         HeaderFileInfoFeature {
-            name: String::from("header"),
+            _name: String::from("header"),
             dim: 62,
         }
     }
@@ -412,7 +412,7 @@ impl HeaderFileInfoFeature {
 
 #[derive(Debug)]
 pub struct GeneralFileInfoFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
@@ -481,7 +481,7 @@ impl GeneralFileInfoFeature {
 
     pub fn new() -> GeneralFileInfoFeature {
         GeneralFileInfoFeature {
-            name: String::from("general"),
+            _name: String::from("general"),
             dim: 10,
         }
     }
@@ -575,18 +575,19 @@ impl GeneralFileInfoFeature {
 //section info
 #[derive(Debug)]
 pub struct SectionInfoFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
 impl SectionInfoFeature {
     pub fn new() -> SectionInfoFeature {
         SectionInfoFeature {
-            name: String::from("section"),
+            _name: String::from("section"),
             dim: 5 + 50 + 50 + 50 + 50 + 50,
         }
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn raw_features(
         &self,
         bytes: &[u8],
@@ -783,14 +784,14 @@ impl SectionInfoFeature {
 //ImportsInfoFeature
 #[derive(Debug)]
 pub struct ImportsInfoFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
 impl ImportsInfoFeature {
     pub fn new() -> ImportsInfoFeature {
         ImportsInfoFeature {
-            name: String::from("imports"),
+            _name: String::from("imports"),
             dim: 1280,
         }
     }
@@ -877,14 +878,14 @@ impl ImportsInfoFeature {
 //ExportsInfoFeature
 #[derive(Debug)]
 pub struct ExportsInfoFeature {
-    name: String,
+    _name: String,
     dim: u32,
 }
 
 impl ExportsInfoFeature {
     pub fn new() -> ExportsInfoFeature {
         ExportsInfoFeature {
-            name: String::from("exports"),
+            _name: String::from("exports"),
             dim: 128,
         }
     }
@@ -938,7 +939,7 @@ impl ExportsInfoFeature {
 //DataDirectoryFeature
 #[derive(Debug)]
 pub struct DataDirectoryFeature {
-    name: String,
+    _name: String,
     dim: u32,
     name_order: Vec<String>,
 }
@@ -946,7 +947,7 @@ pub struct DataDirectoryFeature {
 impl DataDirectoryFeature {
     pub fn new() -> DataDirectoryFeature {
         DataDirectoryFeature {
-            name: String::from("datadirectories"),
+            _name: String::from("datadirectories"),
             dim: 15 * 2,
             name_order: vec![
                 "EXPORT_TABLE".to_string(),
