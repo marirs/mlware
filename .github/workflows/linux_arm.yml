@@ -26,7 +26,7 @@ jobs:
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}
       - name: Install dependencies
         run: |
-          sudo apt install -y cmake libclang-dev libc++-dev gcc-multilib-arm-linux-gnueabihf
+          sudo apt install -y cmake libclang-dev libc++-dev gcc-arm-linux-gnueabihf
           sudo ldconfig
       # Rust
       - name: Install Rust
