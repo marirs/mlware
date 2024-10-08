@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 mod features;
 mod utils;
 use std::{io::Read, path::Path};
