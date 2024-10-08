@@ -1,13 +1,13 @@
 [package]
 name = "mlware"
 version = "0.2.2"
-authors = ["Marirs <marirs@gmail.com>"]
+authors = ["Marirs <marirs@gmail.com>", "Andrey <andrey@3ig.dev>"]
 description = "Static malware detection using machine learning"
 keywords = ["malware", "ai", "model"]
 edition = "2021"
 
 [dependencies]
-lightgbm = "0.2.3"
+lightgbm3 = "1.0.5"
 thiserror = "1.0.29"
 regex = "1.10.4"
 maplit = "1.0.2"

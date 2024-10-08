@@ -40,7 +40,7 @@ fn read_vectorized_features(data_dir: &str) -> Result<(Vec<Vec<f64>>, Vec<f32>)>
     Ok((x_train, y_train))
 }
 
-pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgbm::Booster> {
+pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgbm3::Booster> {
     //! Train a model from the given dataset
     //!
     let mut p = params.clone();
@@ -48,8 +48,8 @@ pub fn train_model(data_dir: &str, params: &serde_json::Value) -> Result<lightgb
     let (x_train, y_train) = read_vectorized_features(data_dir)?;
     //    train_rows = (y_train != -1)
 
-    let lgbm_dataset = lightgbm::Dataset::from_mat(x_train, y_train)?;
-    let lgbm_model = lightgbm::Booster::train(lgbm_dataset, &p)?;
+    let lgbm_dataset = lightgbm3::Dataset::from_vec_of_vec(x_train, y_train, true)?;
+    let lgbm_model = lightgbm3::Booster::train(lgbm_dataset, &p)?;
     Ok(lgbm_model)
 }
 
@@ -62,8 +62,8 @@ pub fn predict<P: AsRef<Path>>(model_file: P, file: P) -> Result<Vec<f64>> {
     //! let score = predict("rs-model/model.txt", "data/Demo64.dll").unwrap();
     //! println!("{:?}", score[0]);
     //! ```
-    let lgbm_model = lightgbm::Booster::from_file(model_file.as_ref().to_str().unwrap())?;
+    let lgbm_model = lightgbm3::Booster::from_file(model_file.as_ref().to_str().unwrap())?;
     let extractor = features::PeFeaturesExtractor::new()?;
     let features = extractor.feature_vector(&utils::load_file(file))?;
-    Ok(lgbm_model.predict(vec![features])?[0].clone())
+    Ok(lgbm_model.predict(&features, features.len() as i32, false)?)
 }
