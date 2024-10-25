@@ -623,22 +623,18 @@ impl SectionInfoFeature {
                 let mut empty_named_sections_len = 0;
                 let mut rx_sections_len = 0;
                 let mut w_sections_len = 0;
+                let mut entry_section = None;
+                let mut first_executable_section = None;
                 for s in pe.section_headers() {
                     if s.VirtualAddress <= entry_point_address
                         && entry_point_address < s.VirtualAddress + s.VirtualSize
                     {
-                        if let Some(ss) = res.get_mut("entry") {
-                            let section_characteristics =
-                                section_characteristics_to_strings(s.Characteristics);
-                            let section_characteristics_bytes = section_characteristics
-                                .iter()
-                                .map(|s| s.as_bytes())
-                                .collect();
-                            ss.push(hashmap!{
-                                "name".to_string() => hasher_bytes(50, from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
-                                "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
-                            });
-                        }
+                        entry_section = Some(s);
+                    }
+                    if s.Characteristics & IMAGE_SCN_MEM_EXECUTE != 0
+                        && first_executable_section.is_none()
+                    {
+                        first_executable_section = Some(s);
                     }
                     if s.SizeOfRawData != 0 {
                         non_zero_sections_len += 1;
@@ -669,6 +665,32 @@ impl SectionInfoFeature {
                         from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.VirtualSize,
                     ));
+                }
+                let entry_sect = match entry_section {
+                    Some(es) => Some(es),
+                    None => match first_executable_section {
+                        Some(es) => Some(es),
+                        None => None,
+                    },
+                };
+                if let Some(ss) = res.get_mut("entry") {
+                    if let Some(es) = entry_sect {
+                        let section_characteristics =
+                            section_characteristics_to_strings(es.Characteristics);
+                        let section_characteristics_bytes = section_characteristics
+                            .iter()
+                            .map(|s| s.as_bytes())
+                            .collect();
+                        ss.push(hashmap!{
+                            "name".to_string() => hasher_bytes(50, from_utf8(&es.Name)?.trim_matches(char::from(0)).as_bytes())?,
+                            "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
+                        });
+                    } else {
+                        ss.push(hashmap! {
+                            "name".to_string() => hasher_bytes(50, &vec![])?,
+                            "characteristics".to_string() => hasher_bytes_vec(50, &vec![])?,
+                        });
+                    }
                 }
                 if let Some(s) = res.get_mut("sections") {
                     s.push(hashmap!{
@@ -697,22 +719,18 @@ impl SectionInfoFeature {
                 let mut empty_named_sections_len = 0;
                 let mut rx_sections_len = 0;
                 let mut w_sections_len = 0;
+                let mut entry_section = None;
+                let mut first_executable_section = None;
                 for s in pe.section_headers() {
                     if s.VirtualAddress <= entry_point_address
                         && entry_point_address < s.VirtualAddress + s.VirtualSize
                     {
-                        if let Some(ss) = res.get_mut("entry") {
-                            let section_characteristics =
-                                section_characteristics_to_strings(s.Characteristics);
-                            let section_characteristics_bytes = section_characteristics
-                                .iter()
-                                .map(|s| s.as_bytes())
-                                .collect();
-                            ss.push(hashmap!{
-                                "name".to_string() => hasher_bytes(50, from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes())?,
-                                "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
-                            });
-                        }
+                        entry_section = Some(s);
+                    }
+                    if s.Characteristics & IMAGE_SCN_MEM_EXECUTE != 0
+                        && first_executable_section.is_none()
+                    {
+                        first_executable_section = Some(s);
                     }
                     if s.SizeOfRawData != 0 {
                         non_zero_sections_len += 1;
@@ -743,6 +761,32 @@ impl SectionInfoFeature {
                         from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         s.VirtualSize,
                     ));
+                }
+                let entry_sect = match entry_section {
+                    Some(es) => Some(es),
+                    None => match first_executable_section {
+                        Some(es) => Some(es),
+                        None => None,
+                    },
+                };
+                if let Some(ss) = res.get_mut("entry") {
+                    if let Some(es) = entry_sect {
+                        let section_characteristics =
+                            section_characteristics_to_strings(es.Characteristics);
+                        let section_characteristics_bytes = section_characteristics
+                            .iter()
+                            .map(|s| s.as_bytes())
+                            .collect();
+                        ss.push(hashmap!{
+                            "name".to_string() => hasher_bytes(50, from_utf8(&es.Name)?.trim_matches(char::from(0)).as_bytes())?,
+                            "characteristics".to_string() => hasher_bytes_vec(50, &section_characteristics_bytes)?,
+                        });
+                    } else {
+                        ss.push(hashmap! {
+                            "name".to_string() => hasher_bytes(50, &vec![])?,
+                            "characteristics".to_string() => hasher_bytes_vec(50, &vec![])?,
+                        });
+                    }
                 }
                 if let Some(s) = res.get_mut("sections") {
                     s.push(hashmap!{
