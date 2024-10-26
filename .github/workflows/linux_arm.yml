@@ -31,7 +31,7 @@ jobs:
           sudo ldconfig
       # Install Rust
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.0  # Ensure this is the latest release
+        uses: actions-rs/toolchain@v1  # Ensure this is the latest release
         with:
           toolchain: stable
           target: armv7-unknown-linux-gnueabihf
