@@ -14,30 +14,31 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        clang: [["13.0", "clang_13_0"]]
+        clang: [["17.0", "clang_17_0"]]  # Update this to the latest Clang version if needed
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v2
-      # LLVM and Clang
+        uses: actions/checkout@v4  # Updated to the latest version of the checkout action
+      # LLVM and Clang Installation
       - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
+        uses: KyleMayes/install-llvm-action@v1.1.0  # Check for the latest version available
         with:
           version: ${{ matrix.clang[0] }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}
       - name: Install dependencies
         run: |
-          sudo apt install -y cmake libclang-dev libc++-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu 
+          sudo apt update
+          sudo apt install -y cmake libclang-dev libc++-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           sudo ldconfig
-      # Rust
+      # Install Rust
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.0  # Ensure this is the latest release
         with:
           toolchain: stable
           target: armv7-unknown-linux-gnueabihf
           override: true
       # Build
-      - name: build
-        uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1.1.0  # Use a specific latest version if available
         with:
           use-cross: true
           command: build
