@@ -657,8 +657,17 @@ impl SectionInfoFeature {
                     entropies.push((
                         from_utf8(&s.Name)?.trim_matches(char::from(0)).as_bytes(),
                         entropy(
-                            &bytes[s.PointerToRawData as usize
-                                ..(s.PointerToRawData + s.SizeOfRawData) as usize],
+                            &bytes[if s.PointerToRawData as usize >= bytes.len() {
+                                bytes.len() - 1
+                            } else {
+                                s.PointerToRawData as usize
+                            }
+                                ..if (s.PointerToRawData + s.SizeOfRawData) as usize >= bytes.len()
+                                {
+                                    bytes.len() - 1
+                                } else {
+                                    (s.PointerToRawData + s.SizeOfRawData) as usize
+                                }],
                         ),
                     ));
                     vsizes.push((
