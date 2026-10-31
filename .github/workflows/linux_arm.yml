@@ -12,6 +12,8 @@ jobs:
   build:
     name: Linux ARMv7
     runs-on: ubuntu-24.04
+    env:
+      CROSS_CONFIG: .github/cross.toml
     strategy:
       matrix:
         clang: [["17.0", "clang_17_0"]]  # Update this to the latest Clang version if needed
