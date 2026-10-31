@@ -1,3 +1,4 @@
 [target.armv7-unknown-linux-gnueabihf]
 # lightgbm3-sys requires CMake >=3.28 inside the cross container.
-pre-build = ["apt-get update && apt-get install --assume-yes --no-install-recommends python3-pip && python3 -m pip install --no-cache-dir cmake==3.31.6"]
+# SHA256 from Kitware/CMake v3.31.6 release checksums.
+pre-build = ["apt-get update && apt-get install --assume-yes --no-install-recommends ca-certificates curl && curl --fail --location --retry 3 https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-linux-x86_64.tar.gz --output /tmp/cmake.tar.gz && echo 5a1133ff103c71eb5120e2cc3de922733e7d8a26a98ae716397e8676adb367bf  /tmp/cmake.tar.gz | sha256sum --check - && tar -xzf /tmp/cmake.tar.gz --strip-components=1 -C /usr/local && rm /tmp/cmake.tar.gz"]
