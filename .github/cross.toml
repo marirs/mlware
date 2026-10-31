@@ -1,0 +1,7 @@
+[target.armv7-unknown-linux-gnueabihf]
+# Ubuntu 24.04 toolchain supports LightGBM current C++ and CMake requirements.
+# Pinned official cross-rs main image for reproducible CI builds.
+image = "ghcr.io/cross-rs/armv7-unknown-linux-gnueabihf@sha256:7c3c5764f6daad4871955a5cfda700a9371b90aac02dd9a6f39a6d12c5576c21"
+
+# Verify and install the CMake version required by LightGBM.
+pre-build = ["apt-get update && apt-get install --assume-yes --no-install-recommends ca-certificates curl && curl --fail --location --retry 3 https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-linux-x86_64.tar.gz --output /tmp/cmake.tar.gz && echo 5a1133ff103c71eb5120e2cc3de922733e7d8a26a98ae716397e8676adb367bf  /tmp/cmake.tar.gz | sha256sum --check - && tar -xzf /tmp/cmake.tar.gz --strip-components=1 -C /usr/local && rm /tmp/cmake.tar.gz"]
