@@ -11,16 +11,15 @@ on:
 jobs:
   build:
     name: Linux ARMv7
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         clang: [["17.0", "clang_17_0"]]  # Update this to the latest Clang version if needed
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v4  # Updated to the latest version of the checkout action
-      # LLVM and Clang Installation
+        uses: actions/checkout@v7
       - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1.1.0  # Check for the latest version available
+        uses: KyleMayes/install-llvm-action@v2
         with:
           version: ${{ matrix.clang[0] }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}
@@ -31,15 +30,11 @@ jobs:
           sudo ldconfig
       # Install Rust
       - name: Install Rust
-        uses: actions-rs/toolchain@v1  # Ensure this is the latest release
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          target: armv7-unknown-linux-gnueabihf
-          override: true
-      # Build
+          targets: armv7-unknown-linux-gnueabihf
+      - name: Install cross
+        run: cargo install cross --locked --version 0.2.5
       - name: Build
-        uses: actions-rs/cargo@v1.1.0  # Use a specific latest version if available
-        with:
-          use-cross: true
-          command: build
-          args: --target armv7-unknown-linux-gnueabihf
+        run: cross build --target armv7-unknown-linux-gnueabihf

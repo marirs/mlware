@@ -16,15 +16,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { rust: stable, os: ubuntu-latest }
+          - { rust: stable, os: ubuntu-24.04 }
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt install -y cmake libclang-dev libc++-dev gcc-multilib
-      - name: buid
-        uses: actions-rs/cargo@v1
+      - name: Install Rust ${{ matrix.rust }}
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          command: build
+      - name: buid
+        run: cargo build
